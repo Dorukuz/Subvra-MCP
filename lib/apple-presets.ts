@@ -23,6 +23,14 @@ export const APPLE_PRESETS: Record<string, ApplePreset> = {
     height: 2796,
     family: "iphone",
   },
+  /** Largest iPhone display class (e.g. Pro Max); App Store Connect portrait slot. */
+  iphone_69: {
+    id: "iphone_69",
+    label: 'iPhone 6.9"',
+    width: 1320,
+    height: 2868,
+    family: "iphone",
+  },
   iphone_65_legacy: {
     id: "iphone_65_legacy",
     label: 'iPhone 6.5" (1242×2688)',

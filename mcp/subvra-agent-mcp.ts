@@ -172,7 +172,9 @@ server.registerTool(
   async ({ authToken, prompt, appStoreUrl, devices, referenceScreenshots }) => {
     const token = authToken || sessionAuthToken;
     if (!token) {
-      throw new Error("No auth token provided. Use mcp_auth(action=set) or pass authToken.");
+      throw new Error(
+        "No auth token. In the app: Dashboard → MCP Auth → Generate MCP token, then run mcp_auth(action=set, authToken=<token>). Or pass authToken (MCP token or Firebase ID token) on this tool."
+      );
     }
     const payload: Record<string, unknown> = { devices };
     if (prompt) payload.prompt = prompt;
@@ -207,7 +209,9 @@ server.registerTool(
   async ({ authToken, scope }) => {
     const token = authToken || sessionAuthToken;
     if (!token) {
-      throw new Error("No auth token provided. Use mcp_auth(action=set) or pass authToken.");
+      throw new Error(
+        "No auth token. In the app: Dashboard → MCP Auth → Generate MCP token, then run mcp_auth(action=set, authToken=<token>). Or pass authToken (MCP token or Firebase ID token) on this tool."
+      );
     }
     const query = scope ? `?scope=${scope}` : "";
     const data = await subvraRequest<unknown>(`/api/generations${query}`, {
@@ -236,7 +240,9 @@ server.registerTool(
   async ({ authToken, jobId }) => {
     const token = authToken || sessionAuthToken;
     if (!token) {
-      throw new Error("No auth token provided. Use mcp_auth(action=set) or pass authToken.");
+      throw new Error(
+        "No auth token. In the app: Dashboard → MCP Auth → Generate MCP token, then run mcp_auth(action=set, authToken=<token>). Or pass authToken (MCP token or Firebase ID token) on this tool."
+      );
     }
     const data = await subvraRequest<unknown>(`/api/generations/${encodeURIComponent(jobId)}`, {
       authToken: token,
