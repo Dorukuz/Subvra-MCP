@@ -5,7 +5,7 @@ import * as z from "zod/v4";
 
 const server = new McpServer({
   name: "subvra-agent-mcp",
-  version: "1.0.0",
+  version: "1.0.1",
 });
 
 const baseUrl = (process.env.SUBVRA_BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
@@ -142,9 +142,15 @@ server.registerTool(
   "generate_screenshots",
   {
     description:
-      "Create a screenshot generation job in Subvra. Requires Firebase ID token for auth.",
+      "Create a screenshot generation job in Subvra. Auth: omit authToken if you already called mcp_auth(action=set) with a dashboard MCP token or Firebase ID token; otherwise pass authToken once per call.",
     inputSchema: {
-      authToken: z.string().min(1).describe("Firebase ID token"),
+      authToken: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          "Optional. Firebase ID token or dashboard MCP token. If omitted, uses token from mcp_auth(action=set)."
+        ),
       prompt: z.string().optional(),
       appStoreUrl: z.string().optional(),
       devices: z
@@ -187,9 +193,14 @@ server.registerTool(
 server.registerTool(
   "list_generations",
   {
-    description: "List recent generation jobs for the authenticated user/team scope.",
+    description:
+      "List recent generation jobs for the authenticated user/team scope. Auth: session from mcp_auth(set) or optional authToken per call.",
     inputSchema: {
-      authToken: z.string().min(1).describe("Firebase ID token"),
+      authToken: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Optional. Firebase ID token or MCP token; if omitted, uses mcp_auth session token."),
       scope: z.enum(["personal", "team"]).optional(),
     },
   },
@@ -211,9 +222,14 @@ server.registerTool(
 server.registerTool(
   "get_generation",
   {
-    description: "Get detailed status/results for one generation job.",
+    description:
+      "Get detailed status/results for one generation job. Auth: session from mcp_auth(set) or optional authToken per call.",
     inputSchema: {
-      authToken: z.string().min(1).describe("Firebase ID token"),
+      authToken: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Optional. Firebase ID token or MCP token; if omitted, uses mcp_auth session token."),
       jobId: z.string().min(1),
     },
   },

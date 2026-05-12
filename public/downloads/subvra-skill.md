@@ -8,14 +8,14 @@ Use this skill to drive screenshot generation through Subvra MCP.
 2. Authenticate once:
    - Tool: `mcp_auth`
    - Action: `set`
-   - Provide Firebase ID token as `authToken`.
+   - Provide a **dashboard MCP token** (from `/dashboard/mcp`) or a Firebase ID token as `authToken`.
 3. Generate screenshots:
    - Tool: `generate_screenshots`
    - Required: `devices`
-   - Optional: `prompt`, `appStoreUrl`, `referenceScreenshots`.
+   - Optional: `authToken` (omit after step 2 — session token is used), `prompt`, `appStoreUrl`, `referenceScreenshots`.
 4. Check outputs:
-   - Tool: `list_generations`
-   - Tool: `get_generation`
+   - Tool: `list_generations` (optional `authToken` if session set)
+   - Tool: `get_generation` (optional `authToken` if session set)
 
 ## Best practices
 
