@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { adminAuth } from "./firebase-admin";
 import { getDb } from "./mongodb";
 import { COLLECTIONS, type User } from "./db/models";
+import { verifyMcpToken } from "./mcp-token";
 
 export interface AuthUser {
   uid: string;
@@ -13,15 +14,29 @@ export async function verifyAuth(): Promise<AuthUser | null> {
   try {
     const headerList = await headers();
     const authHeader = headerList.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) return null;
+    const mcpHeader = headerList.get("x-subvra-mcp-token");
+    const bearerToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.split("Bearer ")[1]
+      : null;
+    const token = mcpHeader?.trim() || bearerToken;
+    if (!token) return null;
 
-    const token = authHeader.split("Bearer ")[1];
-    const decoded = await adminAuth.verifyIdToken(token);
-    
+    const mcp = verifyMcpToken(token);
     const db = await getDb();
-    const user = await db
-      .collection<User>(COLLECTIONS.users)
-      .findOne({ firebaseUid: decoded.uid });
+    if (mcp) {
+      const user = await db
+        .collection<User>(COLLECTIONS.users)
+        .findOne({ firebaseUid: mcp.uid });
+      if (!user) return null;
+      return {
+        uid: mcp.uid,
+        email: user.email,
+        user,
+      };
+    }
+
+    const decoded = await adminAuth.verifyIdToken(token);
+    const user = await db.collection<User>(COLLECTIONS.users).findOne({ firebaseUid: decoded.uid });
 
     if (!user) return null;
 

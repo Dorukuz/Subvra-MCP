@@ -21,9 +21,12 @@ npm run mcp:subvra
 ## Environment
 
 - `SUBVRA_BASE_URL` (optional, default: `http://localhost:3000`)
+- `MCP_TOKEN_SECRET` (required for MCP token issuing/verification)
 
 Most tools require a Firebase ID token as `authToken` to call protected APIs.
 You can store a session token once via `mcp_auth` and omit it in later tool calls.
+You can also create a dedicated MCP token in the app at `/dashboard/mcp` and use that token in
+`mcp_auth(action=set)`.
 
 ## Tools exposed
 
