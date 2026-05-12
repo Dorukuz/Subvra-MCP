@@ -30,7 +30,7 @@ You can also create a dedicated MCP token in the app at `/dashboard/mcp` and use
 
 ## Tools exposed
 
-- `mcp_auth` — set/clear/check MCP session auth token
+- `mcp_auth` — set/clear/check MCP session auth token + open sign-in browser
 - `health_check` — check `/api/health`
 - `billing_catalog` — read plans/topups from `/api/billing/catalog`
 - `generate_screenshots` — call `/api/generate`
@@ -43,5 +43,9 @@ You can also create a dedicated MCP token in the app at `/dashboard/mcp` and use
 - This MCP is intentionally thin: it forwards to your existing Subvra HTTP APIs.
 - `generate_screenshots`, `list_generations`, and `get_generation` will use tool-level
   `authToken` if provided, otherwise fall back to the token set by `mcp_auth`.
+- Use `mcp_auth` sign-in flow:
+  1. `mcp_auth(action="signin")` to open browser on the user's device.
+  2. Sign in and open `/dashboard/mcp`, generate MCP token.
+  3. `mcp_auth(action="set", authToken="<token>")`.
 - For Claude/Codex style UX, document a client command in your README after publish:
   - `claude mcp add subvra --transport stdio -- npm run mcp:subvra`

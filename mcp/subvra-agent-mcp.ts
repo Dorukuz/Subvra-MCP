@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { spawn } from "child_process";
 import * as z from "zod/v4";
 
 const server = new McpServer({
@@ -9,6 +10,31 @@ const server = new McpServer({
 
 const baseUrl = (process.env.SUBVRA_BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
 let sessionAuthToken: string | null = null;
+
+async function openUrlOnDevice(url: string): Promise<void> {
+  const platform = process.platform;
+  if (platform === "darwin") {
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn("open", [url], { stdio: "ignore" });
+      child.on("error", reject);
+      child.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`open exited with code ${code}`))));
+    });
+    return;
+  }
+  if (platform === "win32") {
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn("cmd", ["/c", "start", "", url], { stdio: "ignore" });
+      child.on("error", reject);
+      child.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`start exited with code ${code}`))));
+    });
+    return;
+  }
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn("xdg-open", [url], { stdio: "ignore" });
+    child.on("error", reject);
+    child.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`xdg-open exited with code ${code}`))));
+  });
+}
 
 async function subvraRequest<T>(
   path: string,
@@ -38,13 +64,26 @@ async function subvraRequest<T>(
 server.registerTool(
   "mcp_auth",
   {
-    description: "Set or clear Firebase auth token used by this MCP session.",
+    description: "Set/clear auth token, check status, or open browser sign-in for MCP token flow.",
     inputSchema: {
-      action: z.enum(["set", "clear", "status"]).describe("Auth session action"),
-      authToken: z.string().optional().describe("Firebase ID token (required for action=set)"),
+      action: z.enum(["set", "clear", "status", "signin"]).describe("Auth session action"),
+      authToken: z.string().optional().describe("MCP auth token (required for action=set)"),
     },
   },
   async ({ action, authToken }) => {
+    if (action === "signin") {
+      const signInUrl = `${baseUrl}/sign-in?next=${encodeURIComponent("/dashboard/mcp")}`;
+      await openUrlOnDevice(signInUrl);
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              "Opened browser for Subvra sign-in. After login, open /dashboard/mcp, generate token, then call mcp_auth(action=set, authToken=<token>).",
+          },
+        ],
+      };
+    }
     if (action === "set") {
       if (!authToken || authToken.trim().length === 0) {
         throw new Error("authToken is required when action=set");
