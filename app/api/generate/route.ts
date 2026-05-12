@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, unauthorizedFromAuthError } from "@/lib/auth";
 import { APPLE_PRESETS, type ApplePreset } from "@/lib/apple-presets";
 import { debitCredits, creditRefundForGeneration } from "@/lib/credits";
 import { userUsesTeamWallet } from "@/lib/workspace";
@@ -311,8 +311,11 @@ export async function POST(req: NextRequest) {
   let authUser;
   try {
     authUser = await requireAuth();
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (e) {
+    return (
+      unauthorizedFromAuthError(e) ??
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
   }
 
   const userLimit = await rateLimitByUser(authUser.uid, "generate", 10, 60);

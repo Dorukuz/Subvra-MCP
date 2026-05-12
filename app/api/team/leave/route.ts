@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, unauthorizedFromAuthError } from "@/lib/auth";
 import { COLLECTIONS } from "@/lib/db/models";
 import { getDb } from "@/lib/mongodb";
 import { getMembership } from "@/lib/team-helpers";
@@ -8,8 +8,11 @@ export async function POST() {
   let authUser;
   try {
     authUser = await requireAuth();
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (e) {
+    return (
+      unauthorizedFromAuthError(e) ??
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
   }
 
   const orgId = authUser.user.orgId;

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, unauthorizedFromAuthError } from "@/lib/auth";
 import { issueMcpToken } from "@/lib/mcp-token";
 
 const MAX_TTL_SECONDS = 60 * 60 * 24 * 7;
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
         { status: 503 }
       );
     }
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorizedFromAuthError(error) ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 }
 

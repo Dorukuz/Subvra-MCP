@@ -22,6 +22,16 @@ function signPayload(encodedPayload: string): string {
     .digest("base64url");
 }
 
+function signPayloadWithSecret(encodedPayload: string, secret: string): string {
+  return crypto.createHmac("sha256", secret).update(encodedPayload).digest("base64url");
+}
+
+function readSecretForVerify(): string | null {
+  const secret = process.env.MCP_TOKEN_SECRET;
+  if (!secret || secret.trim().length < 16) return null;
+  return secret;
+}
+
 export function issueMcpToken(uid: string, ttlSeconds = 60 * 60 * 24): string {
   const payload: McpTokenPayload = {
     uid,
@@ -33,12 +43,15 @@ export function issueMcpToken(uid: string, ttlSeconds = 60 * 60 * 24): string {
 }
 
 export function verifyMcpToken(token: string): { uid: string } | null {
+  const secret = readSecretForVerify();
+  if (!secret) return null;
+
   const parts = token.split(".");
   if (parts.length !== 3) return null;
   const [prefix, encodedPayload, sig] = parts;
   if (prefix !== TOKEN_PREFIX) return null;
 
-  const expected = signPayload(encodedPayload);
+  const expected = signPayloadWithSecret(encodedPayload, secret);
   const sigBuf = Buffer.from(sig, "utf8");
   const expBuf = Buffer.from(expected, "utf8");
   if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, unauthorizedFromAuthError } from "@/lib/auth";
 import { getStripe, STRIPE_PLANS, STRIPE_TOPUPS } from "@/lib/stripe";
 import { creditsForPriceId } from "@/lib/stripe-helpers";
 import clientPromise from "@/lib/mongodb";
@@ -21,8 +21,11 @@ export async function POST(req: NextRequest) {
   let authUser;
   try {
     authUser = await requireAuth();
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (e) {
+    return (
+      unauthorizedFromAuthError(e) ??
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
   }
 
   try {

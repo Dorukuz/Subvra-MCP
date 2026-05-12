@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, unauthorizedFromAuthError } from "@/lib/auth";
 import clientPromise from "@/lib/mongodb";
 import { COLLECTIONS, type GenerationJob, type User } from "@/lib/db/models";
 import type { CreditTransaction } from "@/lib/credits";
@@ -17,8 +17,8 @@ function escapeCsvField(value: string): string {
 export async function GET(req: NextRequest) {
   try {
     await requireAdmin();
-  } catch {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  } catch (e) {
+    return unauthorizedFromAuthError(e) ?? NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const rawType = req.nextUrl.searchParams.get("type") || "users";

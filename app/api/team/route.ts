@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, unauthorizedFromAuthError } from "@/lib/auth";
 import {
   getEffectiveWalletBalance,
   getOrgWalletBalance,
@@ -13,8 +13,11 @@ export async function GET() {
   let authUser;
   try {
     authUser = await requireAuth();
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (e) {
+    return (
+      unauthorizedFromAuthError(e) ??
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
   }
 
   const personalCredits = await getWalletBalance(authUser.uid);

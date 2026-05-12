@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, unauthorizedFromAuthError } from "@/lib/auth";
 import { COLLECTIONS, type Organization } from "@/lib/db/models";
 import { getMembership } from "@/lib/team-helpers";
 import { getDb } from "@/lib/mongodb";
@@ -12,8 +12,11 @@ export async function POST(req: NextRequest) {
   let authUser;
   try {
     authUser = await requireAuth();
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (e) {
+    return (
+      unauthorizedFromAuthError(e) ??
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
   }
 
   if (authUser.user.orgId) {
@@ -72,8 +75,11 @@ export async function DELETE() {
   let authUser;
   try {
     authUser = await requireAuth();
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (e) {
+    return (
+      unauthorizedFromAuthError(e) ??
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
   }
 
   const orgId = authUser.user.orgId;

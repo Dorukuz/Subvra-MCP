@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, unauthorizedFromAuthError } from "@/lib/auth";
 import clientPromise from "@/lib/mongodb";
 import { COLLECTIONS, type User } from "@/lib/db/models";
 
@@ -10,8 +10,8 @@ function escapeRegex(s: string): string {
 export async function GET(req: NextRequest) {
   try {
     await requireAdmin();
-  } catch {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  } catch (e) {
+    return unauthorizedFromAuthError(e) ?? NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const q = req.nextUrl.searchParams.get("q")?.trim() || "";

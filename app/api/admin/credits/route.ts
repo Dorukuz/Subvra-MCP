@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, unauthorizedFromAuthError } from "@/lib/auth";
 import { creditWallet, debitCredits } from "@/lib/credits";
 import clientPromise from "@/lib/mongodb";
 import { COLLECTIONS, type User } from "@/lib/db/models";
@@ -7,8 +7,8 @@ import { COLLECTIONS, type User } from "@/lib/db/models";
 export async function POST(req: NextRequest) {
   try {
     await requireAdmin();
-  } catch {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  } catch (e) {
+    return unauthorizedFromAuthError(e) ?? NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {

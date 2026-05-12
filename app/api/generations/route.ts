@@ -1,6 +1,6 @@
 import type { Filter } from "mongodb";
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, unauthorizedFromAuthError } from "@/lib/auth";
 import { COLLECTIONS, type GenerationJob, type User } from "@/lib/db/models";
 import { getDb } from "@/lib/mongodb";
 
@@ -20,8 +20,11 @@ export async function GET(req: NextRequest) {
   let authUser;
   try {
     authUser = await requireAuth();
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (e) {
+    return (
+      unauthorizedFromAuthError(e) ??
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
   }
 
   const scope = resolveListScope(

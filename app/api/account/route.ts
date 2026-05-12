@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
-import { verifyAuth } from "@/lib/auth";
+import { AuthError, unauthorizedFromAuthError, verifyAuthDetailed } from "@/lib/auth";
 import { getAccountCreditBreakdown } from "@/lib/credits";
 import { getOrganization } from "@/lib/team-helpers";
 import { workspaceFromUser } from "@/lib/workspace";
 
 export async function GET() {
-  const auth = await verifyAuth();
-  if (!auth) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const r = await verifyAuthDetailed();
+  if (!r.ok) {
+    return unauthorizedFromAuthError(new AuthError(r.reason))!;
   }
+  const auth = r.auth;
 
   const breakdown = await getAccountCreditBreakdown(auth.uid);
   const u = auth.user;

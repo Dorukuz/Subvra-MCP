@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, unauthorizedFromAuthError } from "@/lib/auth";
 import clientPromise from "@/lib/mongodb";
 import { COLLECTIONS } from "@/lib/db/models";
 
 export async function GET() {
   try {
     await requireAdmin();
-  } catch {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  } catch (e) {
+    return unauthorizedFromAuthError(e) ?? NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const client = await clientPromise;

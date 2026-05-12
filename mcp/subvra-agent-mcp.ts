@@ -5,7 +5,7 @@ import * as z from "zod/v4";
 
 const server = new McpServer({
   name: "subvra-agent-mcp",
-  version: "1.0.1",
+  version: "1.0.2",
 });
 
 const baseUrl = (process.env.SUBVRA_BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
@@ -53,10 +53,13 @@ async function subvraRequest<T>(
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
   });
 
-  const data = (await response.json().catch(() => ({}))) as T | { error?: string };
+  const data = (await response.json().catch(() => ({}))) as
+    | T
+    | { error?: string; reason?: string; hint?: string };
   if (!response.ok) {
-    const err = (data as { error?: string })?.error || `HTTP ${response.status}`;
-    throw new Error(`${path} failed: ${err}`);
+    const d = data as { error?: string; reason?: string; hint?: string };
+    const parts = [d.error || `HTTP ${response.status}`, d.reason, d.hint].filter(Boolean);
+    throw new Error(`${path} failed: ${parts.join(" — ")}`);
   }
   return data as T;
 }

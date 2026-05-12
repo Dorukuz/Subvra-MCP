@@ -26,9 +26,16 @@ export default function McpAuthPage() {
         },
         body: JSON.stringify({ ttlSeconds: 60 * 60 * 24 }),
       });
-      const data = (await res.json()) as { token?: string; expiresAt?: string; error?: string };
+      const data = (await res.json()) as {
+        token?: string;
+        expiresAt?: string;
+        error?: string;
+        reason?: string;
+        hint?: string;
+      };
       if (!res.ok || !data.token) {
-        throw new Error(data.error || "Could not generate MCP token.");
+        const detail = [data.reason, data.hint].filter(Boolean).join(" — ");
+        throw new Error(detail || data.error || "Could not generate MCP token.");
       }
       setToken(data.token);
       setExpiresAt(data.expiresAt || "");
