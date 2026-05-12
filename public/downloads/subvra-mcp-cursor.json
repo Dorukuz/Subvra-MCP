@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "subvra": {
+      "command": "npm",
+      "args": ["run", "mcp:subvra"],
+      "env": {
+        "SUBVRA_BASE_URL": "http://localhost:3000"
+      }
+    }
+  }
+}

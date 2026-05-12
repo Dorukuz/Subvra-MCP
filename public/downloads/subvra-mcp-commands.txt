@@ -1,0 +1,27 @@
+Subvra MCP install commands (examples)
+
+Auto-install:
+  curl -fsSL https://YOUR_DOMAIN/downloads/install-subvra-mcp.sh -o install-subvra-mcp.sh
+  bash install-subvra-mcp.sh
+
+Cursor (project root):
+  npm run mcp:subvra
+
+Claude Code (example stdio-style setup):
+  # add your local MCP server command in Claude MCP config
+  # then run mcp_auth(action=set) with Firebase token
+
+Codex:
+  # add local MCP server command in Codex MCP settings:
+  npm run mcp:subvra
+
+VS Code MCP:
+  {
+    "servers": {
+      "subvra": {
+        "type": "stdio",
+        "command": "npm",
+        "args": ["run", "mcp:subvra"]
+      }
+    }
+  }

@@ -1,0 +1,203 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import * as z from "zod/v4";
+
+const server = new McpServer({
+  name: "subvra-agent-mcp",
+  version: "1.0.0",
+});
+
+const baseUrl = (process.env.SUBVRA_BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
+let sessionAuthToken: string | null = null;
+
+async function subvraRequest<T>(
+  path: string,
+  init: { method?: string; authToken?: string; body?: unknown } = {}
+): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (init.authToken) {
+    headers.Authorization = `Bearer ${init.authToken}`;
+  }
+
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: init.method || "GET",
+    headers,
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+  });
+
+  const data = (await response.json().catch(() => ({}))) as T | { error?: string };
+  if (!response.ok) {
+    const err = (data as { error?: string })?.error || `HTTP ${response.status}`;
+    throw new Error(`${path} failed: ${err}`);
+  }
+  return data as T;
+}
+
+server.registerTool(
+  "mcp_auth",
+  {
+    description: "Set or clear Firebase auth token used by this MCP session.",
+    inputSchema: {
+      action: z.enum(["set", "clear", "status"]).describe("Auth session action"),
+      authToken: z.string().optional().describe("Firebase ID token (required for action=set)"),
+    },
+  },
+  async ({ action, authToken }) => {
+    if (action === "set") {
+      if (!authToken || authToken.trim().length === 0) {
+        throw new Error("authToken is required when action=set");
+      }
+      sessionAuthToken = authToken.trim();
+      return {
+        content: [{ type: "text", text: "Auth token stored for this MCP session." }],
+      };
+    }
+    if (action === "clear") {
+      sessionAuthToken = null;
+      return {
+        content: [{ type: "text", text: "Auth token cleared for this MCP session." }],
+      };
+    }
+    return {
+      content: [
+        {
+          type: "text",
+          text: sessionAuthToken ? "Auth token is currently set." : "No auth token set.",
+        },
+      ],
+    };
+  }
+);
+
+server.registerTool(
+  "health_check",
+  {
+    description: "Check Subvra API health endpoint.",
+    inputSchema: {},
+  },
+  async () => {
+    const data = await subvraRequest<unknown>("/api/health");
+    return {
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+    };
+  }
+);
+
+server.registerTool(
+  "billing_catalog",
+  {
+    description: "Get configured plans/topups available in Subvra billing.",
+    inputSchema: {},
+  },
+  async () => {
+    const data = await subvraRequest<unknown>("/api/billing/catalog");
+    return {
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+    };
+  }
+);
+
+server.registerTool(
+  "generate_screenshots",
+  {
+    description:
+      "Create a screenshot generation job in Subvra. Requires Firebase ID token for auth.",
+    inputSchema: {
+      authToken: z.string().min(1).describe("Firebase ID token"),
+      prompt: z.string().optional(),
+      appStoreUrl: z.string().optional(),
+      devices: z
+        .array(
+          z.object({
+            deviceId: z.string().min(1),
+            count: z.number().int().min(1).max(8).optional(),
+          })
+        )
+        .min(1)
+        .describe("Target devices and optional per-device count"),
+      referenceScreenshots: z
+        .array(z.string().startsWith("data:image/"))
+        .max(3)
+        .optional()
+        .describe("Optional app screenshot data URLs"),
+    },
+  },
+  async ({ authToken, prompt, appStoreUrl, devices, referenceScreenshots }) => {
+    const token = authToken || sessionAuthToken;
+    if (!token) {
+      throw new Error("No auth token provided. Use mcp_auth(action=set) or pass authToken.");
+    }
+    const payload: Record<string, unknown> = { devices };
+    if (prompt) payload.prompt = prompt;
+    if (appStoreUrl) payload.appStoreUrl = appStoreUrl;
+    if (referenceScreenshots?.length) payload.referenceScreenshots = referenceScreenshots;
+
+    const data = await subvraRequest<unknown>("/api/generate", {
+      method: "POST",
+      authToken: token,
+      body: payload,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+    };
+  }
+);
+
+server.registerTool(
+  "list_generations",
+  {
+    description: "List recent generation jobs for the authenticated user/team scope.",
+    inputSchema: {
+      authToken: z.string().min(1).describe("Firebase ID token"),
+      scope: z.enum(["personal", "team"]).optional(),
+    },
+  },
+  async ({ authToken, scope }) => {
+    const token = authToken || sessionAuthToken;
+    if (!token) {
+      throw new Error("No auth token provided. Use mcp_auth(action=set) or pass authToken.");
+    }
+    const query = scope ? `?scope=${scope}` : "";
+    const data = await subvraRequest<unknown>(`/api/generations${query}`, {
+      authToken: token,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+    };
+  }
+);
+
+server.registerTool(
+  "get_generation",
+  {
+    description: "Get detailed status/results for one generation job.",
+    inputSchema: {
+      authToken: z.string().min(1).describe("Firebase ID token"),
+      jobId: z.string().min(1),
+    },
+  },
+  async ({ authToken, jobId }) => {
+    const token = authToken || sessionAuthToken;
+    if (!token) {
+      throw new Error("No auth token provided. Use mcp_auth(action=set) or pass authToken.");
+    }
+    const data = await subvraRequest<unknown>(`/api/generations/${encodeURIComponent(jobId)}`, {
+      authToken: token,
+    });
+    return {
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+    };
+  }
+);
+
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
+
+main().catch((error) => {
+  console.error("[subvra-agent-mcp] fatal error:", error);
+  process.exit(1);
+});
